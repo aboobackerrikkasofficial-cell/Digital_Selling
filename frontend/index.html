@@ -266,63 +266,7 @@
     </div>
   </div>
 
-  <!-- Dynamic UPI Payment Modal -->
-  <div class="modal-overlay" id="paymentModal">
-    <div class="modal-card">
-      <button class="modal-close-btn" aria-label="Close modal">&times;</button>
-      <div class="payment-modal-body">
-        <div class="payment-header">
-          <h3>Complete Direct Payment</h3>
-          <p style="color: var(--text-coffee-muted); font-size: 0.9rem;" id="payProductName">Product Title</p>
-          <div class="payment-amount-display" id="payProductPrice">₹0</div>
-        </div>
 
-        <div class="upi-box">
-          <div class="qr-code-container">
-            <img src="" id="qrCodeImg" alt="UPI Payment QR Code">
-          </div>
-          
-          <div class="upi-id-copy-wrap">
-            <span class="upi-id-text" id="upiIdDisplay">aboobackerrikkas16@okicici</span>
-            <button class="btn-copy-upi" id="btnCopyUpi">Copy UPI</button>
-          </div>
-          <p style="font-size: 0.8rem; color: var(--text-coffee-muted);">Scan QR using GPay, PhonePe, Paytm, or BHIM UPI</p>
-        </div>
-
-        <a href="#" id="btnPayViaApp" class="btn-green pay-via-app-btn">
-          ⚡ Open GPay / Mobile UPI App Directly
-        </a>
-
-        <form id="paymentVerificationForm">
-          <h4 style="font-size: 1rem; margin-bottom: 0.9rem; text-align: center; color: var(--text-coffee-dark);">Submit Payment Proof for Instant Delivery</h4>
-          
-          <div class="form-group">
-            <label class="form-label">Your Full Name</label>
-            <input type="text" id="payUserName" class="form-control" placeholder="e.g. Rahul Sharma" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Email Address (for download link)</label>
-            <input type="email" id="payUserEmail" class="form-control" placeholder="yourname@gmail.com" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">WhatsApp Number</label>
-            <input type="tel" id="payUserPhone" class="form-control" placeholder="+91 9876543210" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">UPI Reference / UTR Number (12 digits)</label>
-            <input type="text" id="payUserUtr" class="form-control" placeholder="e.g. 423456789012" required>
-          </div>
-
-          <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.4rem;">
-            Verify Payment & Claim Access on WhatsApp
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- Admin Login Modal -->
   <div class="modal-overlay" id="loginModal">
@@ -371,67 +315,36 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Short Tagline</label>
+            <label class="form-label">Short Description</label>
             <input type="text" id="newTagline" class="form-control" placeholder="Automates community management & sales..." required>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; align-items: end;" class="responsive-grid">
             <div class="form-group">
               <label class="form-label">Category</label>
-              <select id="newCategory" class="form-control" style="cursor: pointer;">
-                <option value="automation">WhatsApp & Automation</option>
-                <option value="ai_agents">AI Voice Calling Agents</option>
-                <option value="websites">Websites & SaaS</option>
-                <option value="ebooks">Developer E-Books</option>
-                <option value="apps">Mobile Apps</option>
-              </select>
+              <input type="text" id="newCategory" class="form-control" placeholder="e.g. E-books" required>
             </div>
             <div class="form-group">
               <label class="form-label">Badge Overlay</label>
-              <input type="text" id="newBadge" class="form-control" placeholder="e.g. Hot ⚡ or Pro">
+              <input type="text" id="newBadge" class="form-control" placeholder="e.g. Hot ⚡">
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; align-items: end;" class="responsive-grid">
             <div class="form-group">
-              <label class="form-label">Single Price (INR ₹)</label>
+              <label class="form-label">Price (INR ₹)</label>
               <input type="number" id="newSingleInr" class="form-control" placeholder="1499" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Single Price (USD $)</label>
-              <input type="number" id="newSingleUsd" class="form-control" placeholder="24" required>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
-            <div class="form-group">
-              <label class="form-label">Subscription / Mo (INR ₹)</label>
-              <input type="number" id="newSubInr" class="form-control" placeholder="499" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Subscription / Mo (USD $)</label>
-              <input type="number" id="newSubUsd" class="form-control" placeholder="8" required>
+              <label class="form-label">Thumbnail Image (URL or path)</label>
+              <input type="text" id="newImage" class="form-control" placeholder="assets/images/...">
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Thumbnail Image URL or Asset Path</label>
-            <input type="text" id="newImage" class="form-control" placeholder="assets/images/your_image.png or https://...">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Full Description</label>
-            <textarea id="newDescription" class="form-control" rows="3" placeholder="Explain what this tool does and why users need it..." required></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Key Features (One per line)</label>
-            <textarea id="newFeatures" class="form-control" rows="3" placeholder="Anti-ban protection&#10;Excel contact import&#10;Auto-responder setup"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Tech Stack Tags (Comma separated)</label>
-            <input type="text" id="newTechStack" class="form-control" placeholder="Python, Django, Playwright, REST API">
+            <label class="form-label" style="color: var(--accent-orange);">Digital Product File (PDF, Video, ZIP, Image)</label>
+            <input type="file" id="productFile" class="form-control" style="padding: 0.5rem; background: var(--bg-coffee-darker); color: var(--text-coffee-muted);">
+            <div style="font-size: 0.75rem; color: var(--text-coffee-muted); margin-top: 0.4rem;">This file will be securely delivered to buyers after purchase.</div>
           </div>
 
           <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.8rem;">
@@ -451,23 +364,12 @@
             <div class="logo-avatar">AR</div>
             <div class="brand-text">
               <span class="brand-name">Aboobacker Rikkas</span>
-              <span class="brand-subtitle">Vibe Coding & Full-Stack Automation</span>
+              <span class="brand-subtitle">Digital Products Store</span>
             </div>
           </div>
           <p>
-            Building fast, functional, and user-focused digital applications. Solving real problems with clean code, scalable architecture, and AI-driven automation.
+            Providing premium digital products, dropshipping guides, and reselling strategies to start and scale your online business.
           </p>
-        </div>
-
-        <div class="footer-column">
-          <h5>Digital Categories</h5>
-          <ul class="footer-links">
-            <li><a href="#categoryPills">WhatsApp Automation</a></li>
-            <li><a href="#categoryPills">AI Voice Calling Agents</a></li>
-            <li><a href="#categoryPills">Job Scrapers & Finders</a></li>
-            <li><a href="#categoryPills">Instagram Growth Suite</a></li>
-            <li><a href="#categoryPills">SaaS & Website Templates</a></li>
-          </ul>
         </div>
 
         <div class="footer-column">
