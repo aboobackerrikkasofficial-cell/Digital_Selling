@@ -1,0 +1,435 @@
+/**
+ * Aboobacker Rikkas - Digital Products Storefront Engine
+ * Clean Architecture, State Management, Product Details Modal & Direct UPI Payment Engine
+ */
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Store App State
+  const state = {
+    products: [],
+    activeCategory: "all",
+    searchQuery: "",
+    pricingMode: "single", // 'single' | 'subscription'
+    currency: "INR", // 'INR' | 'USD'
+    selectedProduct: null,
+    upiId: "aboobackerrikkas16@okicici",
+    whatsappNumber: "919188072646"
+  };
+
+  // DOM Cache
+  const productsGrid = document.getElementById("productsGrid");
+  const searchInput = document.getElementById("searchInput");
+  const categoryPills = document.getElementById("categoryPills");
+  const singleBtn = document.getElementById("btnSinglePrice");
+  const subBtn = document.getElementById("btnSubPrice");
+  const currencyBtn = document.getElementById("btnCurrencyToggle");
+  const adminBtn = document.getElementById("btnAdminOpen");
+  
+  // Modals
+  const detailModal = document.getElementById("detailModal");
+  const paymentModal = document.getElementById("paymentModal");
+  const adminModal = document.getElementById("adminModal");
+
+  // Initialize Data
+  function initApp() {
+    state.products = ProductStorage.getProducts();
+    renderProducts();
+    setupEventListeners();
+  }
+
+  // Format Currency
+  function formatPrice(singlePriceObj, subPriceObj) {
+    const isSub = state.pricingMode === "subscription";
+    const priceObj = isSub ? subPriceObj : singlePriceObj;
+    
+    if (!priceObj) {
+      const fallback = isSub ? singlePriceObj : subPriceObj;
+      if (!fallback) return "Custom";
+      return formatPriceVal(fallback);
+    }
+
+    return formatPriceVal(priceObj) + (isSub ? "/mo" : "");
+  }
+
+  function formatPriceVal(priceObj) {
+    if (state.currency === "INR") {
+      return `₹${priceObj.inr.toLocaleString("en-IN")}`;
+    } else {
+      return `$${priceObj.usd.toLocaleString("en-US")}`;
+    }
+  }
+
+  // Filter Products
+  function getFilteredProducts() {
+    return state.products.filter(product => {
+      // Category Match
+      const matchesCategory = state.activeCategory === "all" || product.category === state.activeCategory;
+      
+      // Search Match
+      const query = state.searchQuery.toLowerCase().trim();
+      const matchesSearch = !query || 
+        product.title.toLowerCase().includes(query) ||
+        product.tagline.toLowerCase().includes(query) ||
+        product.description.toLowerCase().includes(query) ||
+        product.techStack.some(t => t.toLowerCase().includes(query));
+
+      return matchesCategory && matchesSearch;
+    });
+  }
+
+  // Render Product Grid
+  function renderProducts() {
+    const filtered = getFilteredProducts();
+
+    if (filtered.length === 0) {
+      productsGrid.innerHTML = `
+        <div class="no-results">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <h3>No digital products found</h3>
+          <p style="color: var(--text-coffee-muted);">Try adjusting your search terms or filter category.</p>
+        </div>
+      `;
+      return;
+    }
+
+    productsGrid.innerHTML = filtered.map(product => {
+      const priceDisplay = formatPrice(product.singlePrice, product.subscriptionPrice);
+      const isSub = state.pricingMode === "subscription";
+      
+      return `
+        <article class="product-card" data-id="${product.id}">
+          <div class="product-thumb-wrap">
+            <span class="product-badge-overlay">${product.badge || "Featured"}</span>
+            <span class="product-rating-overlay">★ ${product.rating || "4.9"}</span>
+            <img src="${product.image}" alt="${product.title}" class="product-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
+          </div>
+          <div class="product-body">
+            <div class="product-category-tag">${product.category.replace('_', ' ')}</div>
+            <h3 class="product-title">${product.title}</h3>
+            <p class="product-tagline">${product.tagline}</p>
+            
+            <div class="product-tech-stack">
+              ${(product.techStack || []).map(tech => `<span class="tech-chip">${tech}</span>`).join('')}
+            </div>
+
+            <div class="product-footer">
+              <div class="price-box">
+                <span class="price-amount">${priceDisplay}</span>
+                <span class="price-period">${isSub ? "billed monthly" : "one-time lifetime"}</span>
+              </div>
+              <div class="card-actions">
+                <button class="btn-outline btn-detail" data-id="${product.id}" aria-label="View Details for ${product.title}">Details</button>
+                <button class="btn-primary btn-buy" data-id="${product.id}" aria-label="Buy ${product.title}">
+                  Buy Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    attachCardListeners();
+  }
+
+  // Attach Listeners to Rendered Cards
+  function attachCardListeners() {
+    document.querySelectorAll(".btn-detail").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-id");
+        openDetailModal(id);
+      });
+    });
+
+    document.querySelectorAll(".btn-buy").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-id");
+        openPaymentModal(id);
+      });
+    });
+  }
+
+  // Open Detail Modal (Cleanly styled with theme variables & full details)
+  function openDetailModal(productId) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+    state.selectedProduct = product;
+
+    const modalBody = document.getElementById("detailModalContent");
+    const priceDisplay = formatPrice(product.singlePrice, product.subscriptionPrice);
+    const isSub = state.pricingMode === "subscription";
+
+    modalBody.innerHTML = `
+      <div style="padding: 1.8rem;">
+        <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.4rem;">
+          <img src="${product.image}" style="width: 120px; height: 120px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-cream);" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
+          <div style="flex: 1; min-width: 220px;">
+            <span class="product-category-tag">${product.category.replace('_', ' ')}</span>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.4rem; color: var(--text-coffee-dark); font-weight: 800;">${product.title}</h2>
+            <p style="color: var(--text-coffee-muted); font-size: 0.92rem; margin-bottom: 0.8rem; line-height: 1.5;">${product.tagline}</p>
+            <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+              <span class="price-amount" style="font-size: 1.45rem;">${priceDisplay}</span>
+              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.78rem;">★ ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; margin-bottom: 1.2rem;">
+          <h4 style="font-size: 1.05rem; margin-bottom: 0.6rem; color: var(--text-coffee-dark); font-weight: 700;">Product Overview</h4>
+          <p style="color: var(--text-coffee-muted); font-size: 0.92rem; line-height: 1.6;">${product.description}</p>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; margin-bottom: 1.2rem;">
+          <h4 style="font-size: 1.05rem; margin-bottom: 0.6rem; color: var(--text-coffee-dark); font-weight: 700;">Key Capabilities & Features Included</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.6rem;">
+            ${(product.features || []).map(f => `
+              <li style="display: flex; align-items: flex-start; gap: 0.6rem; color: var(--text-coffee-dark); font-size: 0.9rem;">
+                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0;">✓</span>
+                <span>${f}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            ${(product.techStack || []).map(t => `<span class="tech-chip">${t}</span>`).join('')}
+          </div>
+          <button class="btn-primary" id="btnDetailModalBuy">
+            Proceed to Checkout (${priceDisplay})
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btnDetailModalBuy").addEventListener("click", () => {
+      closeModal(detailModal);
+      openPaymentModal(productId);
+    });
+
+    openModal(detailModal);
+  }
+
+  // Open Payment Modal
+  function openPaymentModal(productId) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+    state.selectedProduct = product;
+
+    const isSub = state.pricingMode === "subscription";
+    const priceObj = isSub ? (product.subscriptionPrice || product.singlePrice) : product.singlePrice;
+    const amountInr = priceObj.inr;
+    const priceFormatted = formatPriceVal(priceObj);
+
+    // Build UPI Payment String & QR Image URL
+    const upiPayString = `upi://pay?pa=${state.upiId}&pn=Aboobacker%20Rikkas&am=${amountInr}&cu=INR&tn=${encodeURIComponent(product.title)}`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiPayString)}`;
+
+    document.getElementById("payProductName").textContent = product.title;
+    document.getElementById("payProductPrice").textContent = priceFormatted + (isSub ? " / month" : " (Lifetime)");
+    document.getElementById("qrCodeImg").src = qrApiUrl;
+    document.getElementById("upiIdDisplay").textContent = state.upiId;
+    
+    // Set Direct Mobile Pay Link
+    const appPayBtn = document.getElementById("btnPayViaApp");
+    appPayBtn.href = upiPayString;
+
+    openModal(paymentModal);
+  }
+
+  // Handle Payment Verification Form Submit
+  const paymentForm = document.getElementById("paymentVerificationForm");
+  if (paymentForm) {
+    paymentForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const product = state.selectedProduct;
+      if (!product) return;
+
+      const name = document.getElementById("payUserName").value.trim();
+      const email = document.getElementById("payUserEmail").value.trim();
+      const phone = document.getElementById("payUserPhone").value.trim();
+      const utr = document.getElementById("payUserUtr").value.trim();
+
+      const priceObj = (state.pricingMode === "subscription" && product.subscriptionPrice) ? product.subscriptionPrice : product.singlePrice;
+
+      // Construct WhatsApp Confirmation Message
+      const waMsg = `Hi Aboobacker Rikkas! 👋%0A%0AI have made a payment for *${encodeURIComponent(product.title)}*.%0A%0A📌 *Order Details:*%0A- Product: ${encodeURIComponent(product.title)}%0A- Pricing Plan: ${state.pricingMode === "subscription" ? "Subscription" : "One-Time Single Payment"} (${formatPriceVal(priceObj)})%0A- Customer Name: ${encodeURIComponent(name)}%0A- Email: ${encodeURIComponent(email)}%0A- WhatsApp/Phone: ${encodeURIComponent(phone)}%0A- UPI UTR / Ref No: ${encodeURIComponent(utr)}%0A%0APlease verify and send my instant access download link & setup instructions!`;
+
+      showToast("Order details captured! Redirecting to WhatsApp...");
+      closeModal(paymentModal);
+
+      // Open WhatsApp Direct Link after short delay
+      setTimeout(() => {
+        window.open(`https://wa.me/${state.whatsappNumber}?text=${waMsg}`, "_blank");
+      }, 1000);
+    });
+  }
+
+  // Modal Controls
+  function openModal(modal) {
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal(modal) {
+    modal.classList.remove("active");
+    document.body.style.overflow = "auto";
+  }
+
+  // Setup Event Listeners
+  function setupEventListeners() {
+    // Search Listener
+    searchInput.addEventListener("input", (e) => {
+      state.searchQuery = e.target.value;
+      renderProducts();
+    });
+
+    // Category Pills Listener
+    categoryPills.addEventListener("click", (e) => {
+      if (e.target.classList.contains("cat-btn")) {
+        document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        state.activeCategory = e.target.getAttribute("data-cat");
+        renderProducts();
+      }
+    });
+
+    // Pricing Mode Toggle
+    singleBtn.addEventListener("click", () => {
+      singleBtn.classList.add("active");
+      subBtn.classList.remove("active");
+      state.pricingMode = "single";
+      renderProducts();
+    });
+
+    subBtn.addEventListener("click", () => {
+      subBtn.classList.add("active");
+      singleBtn.classList.remove("active");
+      state.pricingMode = "subscription";
+      renderProducts();
+    });
+
+    // Currency Switcher
+    currencyBtn.addEventListener("click", () => {
+      state.currency = state.currency === "INR" ? "USD" : "INR";
+      currencyBtn.innerHTML = `<span>${state.currency === "INR" ? "₹ INR" : "$ USD"}</span>`;
+      renderProducts();
+    });
+
+    // Copy UPI ID Button
+    document.getElementById("btnCopyUpi")?.addEventListener("click", () => {
+      navigator.clipboard.writeText(state.upiId).then(() => {
+        showToast("UPI ID copied to clipboard!");
+      }).catch(() => {
+        showToast("UPI ID: " + state.upiId);
+      });
+    });
+
+    // Close Modal Buttons
+    document.querySelectorAll(".modal-close-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const modal = e.currentTarget.closest(".modal-overlay");
+        closeModal(modal);
+      });
+    });
+
+    // Close Modal on Overlay Click
+    document.querySelectorAll(".modal-overlay").forEach(overlay => {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal(overlay);
+      });
+    });
+
+    // FAQ Accordion
+    document.querySelectorAll(".faq-question").forEach(q => {
+      q.addEventListener("click", () => {
+        const item = q.closest(".faq-item");
+        const isActive = item.classList.contains("active");
+        
+        document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("active"));
+        if (!isActive) item.classList.add("active");
+      });
+    });
+
+    // Admin Modal Logic
+    adminBtn.addEventListener("click", () => {
+      openModal(adminModal);
+    });
+
+    const addProductForm = document.getElementById("addProductForm");
+    if (addProductForm) {
+      addProductForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        
+        const newProduct = {
+          title: document.getElementById("newTitle").value.trim(),
+          tagline: document.getElementById("newTagline").value.trim(),
+          category: document.getElementById("newCategory").value,
+          badge: document.getElementById("newBadge").value.trim() || "New Tool ⚡",
+          image: document.getElementById("newImage").value.trim() || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80",
+          singlePrice: {
+            inr: parseInt(document.getElementById("newSingleInr").value) || 999,
+            usd: parseInt(document.getElementById("newSingleUsd").value) || 15
+          },
+          subscriptionPrice: {
+            inr: parseInt(document.getElementById("newSubInr").value) || 299,
+            usd: parseInt(document.getElementById("newSubUsd").value) || 5
+          },
+          pricingType: "both",
+          description: document.getElementById("newDescription").value.trim(),
+          features: document.getElementById("newFeatures").value.split("\n").filter(f => f.trim().length > 0),
+          techStack: document.getElementById("newTechStack").value.split(",").map(t => t.trim()).filter(Boolean),
+          demoUrl: "https://github.com/aboobackerrikkas"
+        };
+
+        ProductStorage.addProduct(newProduct);
+        state.products = ProductStorage.getProducts();
+        renderProducts();
+        closeModal(adminModal);
+        addProductForm.reset();
+        showToast("New product published successfully!");
+      });
+    }
+
+    document.getElementById("btnResetProducts")?.addEventListener("click", () => {
+      if (confirm("Reset products catalog to initial default list?")) {
+        state.products = ProductStorage.resetToDefault();
+        renderProducts();
+        closeModal(adminModal);
+        showToast("Products catalog reset to defaults.");
+      }
+    });
+  }
+
+  // Toast Notification Helper
+  function showToast(message) {
+    let container = document.querySelector(".toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = `
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(100%)";
+      toast.style.transition = "all 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  // Start App
+  initApp();
+});
