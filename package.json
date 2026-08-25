@@ -20,11 +20,11 @@
   },
   "homepage": "https://github.com/aboobackerrikkasofficial-cell/Digital_Selling#readme",
   "dependencies": {
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "~6.19.3",
     "@supabase/supabase-js": "^2.112.4",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
-    "prisma": "^7.10.0",
+    "prisma": "~6.19.3",
     "razorpay": "^2.9.8"
   }
 }
