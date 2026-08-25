@@ -4,7 +4,8 @@
   "description": "A luxury dark-themed digital storefront built for **Aboobacker Rikkas** (Python Full-Stack Developer & Automation Creator). It allows customers to browse, explore, filter, and buy automation tools, AI calling agents, job finding scrapers, Instagram growth suites, website templates, e-books, and mobile apps.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
@@ -13,7 +14,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/aboobackerrikkasofficial-cell/Digital_Selling/issues"
   },
@@ -23,6 +24,7 @@
     "@supabase/supabase-js": "^2.112.4",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
+    "prisma": "^7.10.0",
     "razorpay": "^2.9.8"
   }
 }
