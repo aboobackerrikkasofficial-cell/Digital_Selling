@@ -25,10 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const currencyBtn = document.getElementById("btnCurrencyToggle");
   const adminBtn = document.getElementById("btnAdminOpen");
   
-  // Modals
   const detailModal = document.getElementById("detailModal");
   const paymentModal = document.getElementById("paymentModal");
   const adminModal = document.getElementById("adminModal");
+  const loginModal = document.getElementById("loginModal");
 
   // Initialize Data
   function initApp() {
@@ -353,10 +353,51 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Admin Modal Logic
+    // Admin Modal Logic (Now protected by Login)
     adminBtn.addEventListener("click", () => {
-      openModal(adminModal);
+      // Check if already authenticated (simple check, backend verifies actual actions)
+      const token = localStorage.getItem("adminToken");
+      if (token) {
+        openModal(adminModal);
+      } else {
+        openModal(loginModal);
+      }
     });
+
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("loginUsername").value;
+        const password = document.getElementById("loginPassword").value;
+        const errorDiv = document.getElementById("loginError");
+        errorDiv.style.display = "none";
+
+        try {
+          const res = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            localStorage.setItem("adminToken", data.token);
+            closeModal(loginModal);
+            loginForm.reset();
+            openModal(adminModal);
+            showToast("Logged in successfully!");
+          } else {
+            errorDiv.textContent = data.message || "Invalid credentials";
+            errorDiv.style.display = "block";
+          }
+        } catch (err) {
+          console.error(err);
+          errorDiv.textContent = "Server connection failed";
+          errorDiv.style.display = "block";
+        }
+      });
+    }
 
     const addProductForm = document.getElementById("addProductForm");
     if (addProductForm) {
