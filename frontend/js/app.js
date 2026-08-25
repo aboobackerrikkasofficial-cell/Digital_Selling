@@ -50,24 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       console.error("Failed to load products:", err);
-      // Fallback dummy products if API is down so site doesn't look broken
-      state.products = [
-        {
-          id: 1,
-          title: "Ultimate WhatsApp Automation Guide",
-          tagline: "Automate sales & customer support",
-          description: "Learn how to build powerful WhatsApp chatbots.",
-          category: "automation",
-          inr: 499,
-          usd: 9,
-          image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80",
-          features: ["Step-by-step setup", "Templates included", "No coding required"],
-          techStack: ["WhatsApp API", "Make.com"],
-          rating: "4.9",
-          salesCount: 350,
-          singlePrice: { inr: 499, usd: 9 }
-        }
-      ];
+      // Removed dummy products as per user request so they can add original products
+      state.products = [];
     }
     renderProducts();
   }
