@@ -1,5 +1,4 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { PrismaClient } from '@prisma/client';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';

@@ -19,3 +19,6 @@ logs/
 *.log
 backend/uploads/private/*
 !backend/uploads/private/.gitkeep
+
+.vercel
+.env*
