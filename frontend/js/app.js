@@ -31,10 +31,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginModal = document.getElementById("loginModal");
 
   // Initialize Data
-  function initApp() {
-    state.products = ProductStorage.getProducts();
-    renderProducts();
+  async function initApp() {
     setupEventListeners();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      
+      const res = await fetch('/api/products', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) throw new Error("API Error");
+      
+      const data = await res.json();
+      if (data.success) {
+        state.products = data.products;
+      } else {
+        state.products = [];
+      }
+    } catch (err) {
+      console.error("Failed to load products:", err);
+      // Fallback dummy products if API is down so site doesn't look broken
+      state.products = [
+        {
+          id: 1,
+          title: "Ultimate WhatsApp Automation Guide",
+          tagline: "Automate sales & customer support",
+          description: "Learn how to build powerful WhatsApp chatbots.",
+          category: "automation",
+          inr: 499,
+          usd: 9,
+          image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80",
+          features: ["Step-by-step setup", "Templates included", "No coding required"],
+          techStack: ["WhatsApp API", "Make.com"],
+          rating: "4.9",
+          salesCount: 350,
+          singlePrice: { inr: 499, usd: 9 }
+        }
+      ];
+    }
+    renderProducts();
   }
 
   // Format Currency
@@ -212,59 +247,74 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal(detailModal);
   }
 
-  // Open Payment Modal
-  function openPaymentModal(productId) {
+  // Open Payment (Razorpay Integration)
+  async function openPaymentModal(productId) {
     const product = state.products.find(p => p.id === productId);
     if (!product) return;
     state.selectedProduct = product;
 
-    const isSub = state.pricingMode === "subscription";
-    const priceObj = isSub ? (product.subscriptionPrice || product.singlePrice) : product.singlePrice;
-    const amountInr = priceObj.inr;
-    const priceFormatted = formatPriceVal(priceObj);
+    const planType = state.pricingMode;
 
-    // Build UPI Payment String & QR Image URL
-    const upiPayString = `upi://pay?pa=${state.upiId}&pn=Aboobacker%20Rikkas&am=${amountInr}&cu=INR&tn=${encodeURIComponent(product.title)}`;
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiPayString)}`;
+    try {
+      showToast("Initializing Secure Checkout...");
+      
+      // 1. Call secure Vercel API
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          planType: planType,
+          customerEmail: "customer@example.com", // In a full app, collect this beforehand
+          customerPhone: "9999999999"
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!data.success) {
+        showToast("Error starting checkout: " + data.message);
+        return;
+      }
 
-    document.getElementById("payProductName").textContent = product.title;
-    document.getElementById("payProductPrice").textContent = priceFormatted + (isSub ? " / month" : " (Lifetime)");
-    document.getElementById("qrCodeImg").src = qrApiUrl;
-    document.getElementById("upiIdDisplay").textContent = state.upiId;
-    
-    // Set Direct Mobile Pay Link
-    const appPayBtn = document.getElementById("btnPayViaApp");
-    appPayBtn.href = upiPayString;
+      // 2. Open Razorpay Checkout Window
+      const options = {
+        key: "rzp_live_TSkfPKvHtyq6BO", // Safe to expose public key
+        amount: data.amount,
+        currency: data.currency,
+        name: "Aboobacker Rikkas",
+        description: product.title,
+        order_id: data.orderId,
+        handler: function (response) {
+          // Success Callback
+          const waMsg = `Hi Aboobacker Rikkas! 👋%0A%0AI have just purchased *${encodeURIComponent(product.title)}*.%0A%0A📌 *Payment Details:*%0A- Payment ID: ${response.razorpay_payment_id}%0A- Order ID: ${response.razorpay_order_id}%0A%0APlease send my instant access download link!`;
+          
+          showToast("Payment Successful! Redirecting to WhatsApp for access...");
+          
+          setTimeout(() => {
+            window.open(`https://wa.me/${state.whatsappNumber}?text=${waMsg}`, "_blank");
+          }, 1500);
+        },
+        prefill: {
+          name: "Valued Customer",
+          email: "customer@example.com",
+          contact: "9999999999"
+        },
+        theme: {
+          color: "#c2a688" // Brand Coffee Muted color
+        }
+      };
 
-    openModal(paymentModal);
-  }
+      const rzp1 = new window.Razorpay(options);
+      rzp1.on('payment.failed', function (response){
+        showToast("Payment Failed: " + response.error.description);
+      });
+      rzp1.open();
 
-  // Handle Payment Verification Form Submit
-  const paymentForm = document.getElementById("paymentVerificationForm");
-  if (paymentForm) {
-    paymentForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const product = state.selectedProduct;
-      if (!product) return;
-
-      const name = document.getElementById("payUserName").value.trim();
-      const email = document.getElementById("payUserEmail").value.trim();
-      const phone = document.getElementById("payUserPhone").value.trim();
-      const utr = document.getElementById("payUserUtr").value.trim();
-
-      const priceObj = (state.pricingMode === "subscription" && product.subscriptionPrice) ? product.subscriptionPrice : product.singlePrice;
-
-      // Construct WhatsApp Confirmation Message
-      const waMsg = `Hi Aboobacker Rikkas! 👋%0A%0AI have made a payment for *${encodeURIComponent(product.title)}*.%0A%0A📌 *Order Details:*%0A- Product: ${encodeURIComponent(product.title)}%0A- Pricing Plan: ${state.pricingMode === "subscription" ? "Subscription" : "One-Time Single Payment"} (${formatPriceVal(priceObj)})%0A- Customer Name: ${encodeURIComponent(name)}%0A- Email: ${encodeURIComponent(email)}%0A- WhatsApp/Phone: ${encodeURIComponent(phone)}%0A- UPI UTR / Ref No: ${encodeURIComponent(utr)}%0A%0APlease verify and send my instant access download link & setup instructions!`;
-
-      showToast("Order details captured! Redirecting to WhatsApp...");
-      closeModal(paymentModal);
-
-      // Open WhatsApp Direct Link after short delay
-      setTimeout(() => {
-        window.open(`https://wa.me/${state.whatsappNumber}?text=${waMsg}`, "_blank");
-      }, 1000);
-    });
+    } catch (error) {
+      console.error(error);
+      showToast("Could not connect to payment gateway.");
+    }
   }
 
   // Modal Controls
@@ -297,14 +347,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Pricing Mode Toggle
-    singleBtn.addEventListener("click", () => {
+    singleBtn?.addEventListener("click", () => {
       singleBtn.classList.add("active");
       subBtn.classList.remove("active");
       state.pricingMode = "single";
       renderProducts();
     });
 
-    subBtn.addEventListener("click", () => {
+    subBtn?.addEventListener("click", () => {
       subBtn.classList.add("active");
       singleBtn.classList.remove("active");
       state.pricingMode = "subscription";
@@ -401,45 +451,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const addProductForm = document.getElementById("addProductForm");
     if (addProductForm) {
-      addProductForm.addEventListener("submit", (e) => {
+      addProductForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         
-        const newProduct = {
-          title: document.getElementById("newTitle").value.trim(),
-          tagline: document.getElementById("newTagline").value.trim(),
-          category: document.getElementById("newCategory").value,
-          badge: document.getElementById("newBadge").value.trim() || "New Tool ⚡",
-          image: document.getElementById("newImage").value.trim() || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80",
-          singlePrice: {
-            inr: parseInt(document.getElementById("newSingleInr").value) || 999,
-            usd: parseInt(document.getElementById("newSingleUsd").value) || 15
-          },
-          subscriptionPrice: {
-            inr: parseInt(document.getElementById("newSubInr").value) || 299,
-            usd: parseInt(document.getElementById("newSubUsd").value) || 5
-          },
-          pricingType: "both",
-          description: document.getElementById("newDescription").value.trim(),
-          features: document.getElementById("newFeatures").value.split("\n").filter(f => f.trim().length > 0),
-          techStack: document.getElementById("newTechStack").value.split(",").map(t => t.trim()).filter(Boolean),
-          demoUrl: "https://github.com/aboobackerrikkas"
-        };
+        const fileInput = document.getElementById("productFile");
+        if (!fileInput.files || fileInput.files.length === 0) {
+          showToast("Please select a digital product file to upload.", "error");
+          return;
+        }
 
-        ProductStorage.addProduct(newProduct);
-        state.products = ProductStorage.getProducts();
-        renderProducts();
-        closeModal(adminModal);
-        addProductForm.reset();
-        showToast("New product published successfully!");
+        const formData = new FormData();
+        formData.append("title", document.getElementById("newTitle").value.trim());
+        formData.append("short_description", document.getElementById("newTagline").value.trim());
+        formData.append("category", document.getElementById("newCategory").value);
+        formData.append("badge", document.getElementById("newBadge").value.trim() || "New Tool ⚡");
+        formData.append("thumbnail", document.getElementById("newImage").value.trim() || "assets/images/default.jpg");
+        formData.append("price", document.getElementById("newSingleInr").value);
+        
+        // Append the actual file
+        formData.append("product_file", fileInput.files[0]);
+
+        try {
+          const res = await fetch("/api/products", {
+            method: "POST",
+            body: formData
+          });
+          const data = await res.json();
+          if (data.success) {
+            state.products.push(data.product);
+            renderProducts();
+            closeModal(adminModal);
+            addProductForm.reset();
+            showToast("New product published successfully!");
+          } else {
+            showToast("Failed to publish product.");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Server error while publishing.");
+        }
       });
     }
 
-    document.getElementById("btnResetProducts")?.addEventListener("click", () => {
-      if (confirm("Reset products catalog to initial default list?")) {
-        state.products = ProductStorage.resetToDefault();
-        renderProducts();
+    document.getElementById("btnResetProducts")?.addEventListener("click", async () => {
+      if (confirm("Are you sure? This doesn't apply to the database.")) {
+        // Just reload for now
+        await initApp();
         closeModal(adminModal);
-        showToast("Products catalog reset to defaults.");
+        showToast("Products reloaded from database.");
       }
     });
   }
