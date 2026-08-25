@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import Razorpay from 'razorpay'
 
 const prisma = new PrismaClient()

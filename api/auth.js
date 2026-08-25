@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
     }
 
     // 2. Hash compare: verify password against hashed version in DB
-    const isMatch = await bcrypt.compare(password, admin.passwordHash)
+    const isMatch = await bcrypt.compare(password, admin.password_hash)
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' })
