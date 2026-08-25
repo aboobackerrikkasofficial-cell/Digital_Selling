@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Aboobacker Rikkas - Digital Products Storefront Engine
  * Clean Architecture, State Management, Product Details Modal & Direct UPI Payment Engine
  */
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
-      const res = await fetch('/api/products', { signal: controller.signal });
+      const res = await fetch('https://digital-selling-7w8x.onrender.com/api/products', { signal: controller.signal });
       clearTimeout(timeoutId);
       
       if (!res.ok) throw new Error("API Error");
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatPriceVal(priceObj) {
     if (state.currency === "INR") {
-      return `₹${priceObj.inr.toLocaleString("en-IN")}`;
+      return `â‚¹${priceObj.inr.toLocaleString("en-IN")}`;
     } else {
       return `$${priceObj.usd.toLocaleString("en-US")}`;
     }
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <article class="product-card" data-id="${product.id}">
           <div class="product-thumb-wrap">
             <span class="product-badge-overlay">${product.badge || "Featured"}</span>
-            <span class="product-rating-overlay">★ ${product.rating || "4.9"}</span>
+            <span class="product-rating-overlay">â˜… ${product.rating || "4.9"}</span>
             <img src="${product.image}" alt="${product.title}" class="product-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
           </div>
           <div class="product-body">
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="color: var(--text-coffee-muted); font-size: 0.92rem; margin-bottom: 0.8rem; line-height: 1.5;">${product.tagline}</p>
             <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
               <span class="price-amount" style="font-size: 1.45rem;">${priceDisplay}</span>
-              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.78rem;">★ ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
+              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.78rem;">â˜… ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
             </div>
           </div>
         </div>
@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.6rem;">
             ${(product.features || []).map(f => `
               <li style="display: flex; align-items: flex-start; gap: 0.6rem; color: var(--text-coffee-dark); font-size: 0.9rem;">
-                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0;">✓</span>
+                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0;">âœ“</span>
                 <span>${f}</span>
               </li>
             `).join('')}
@@ -243,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Initializing Secure Checkout...");
       
       // 1. Call secure Vercel API
-      const res = await fetch("/api/payments/create", {
+      const res = await fetch("https://digital-selling-7w8x.onrender.com/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -271,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
         order_id: data.orderId,
         handler: function (response) {
           // Success Callback
-          const waMsg = `Hi Aboobacker Rikkas! 👋%0A%0AI have just purchased *${encodeURIComponent(product.title)}*.%0A%0A📌 *Payment Details:*%0A- Payment ID: ${response.razorpay_payment_id}%0A- Order ID: ${response.razorpay_order_id}%0A%0APlease send my instant access download link!`;
+          const waMsg = `Hi Aboobacker Rikkas! ðŸ‘‹%0A%0AI have just purchased *${encodeURIComponent(product.title)}*.%0A%0AðŸ“Œ *Payment Details:*%0A- Payment ID: ${response.razorpay_payment_id}%0A- Order ID: ${response.razorpay_order_id}%0A%0APlease send my instant access download link!`;
           
           showToast("Payment Successful! Redirecting to WhatsApp for access...");
           
@@ -348,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Currency Switcher
     currencyBtn.addEventListener("click", () => {
       state.currency = state.currency === "INR" ? "USD" : "INR";
-      currencyBtn.innerHTML = `<span>${state.currency === "INR" ? "₹ INR" : "$ USD"}</span>`;
+      currencyBtn.innerHTML = `<span>${state.currency === "INR" ? "â‚¹ INR" : "$ USD"}</span>`;
       renderProducts();
     });
 
@@ -408,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
         errorDiv.style.display = "none";
 
         try {
-          const res = await fetch("/api/auth", {
+          const res = await fetch("https://digital-selling-7w8x.onrender.com/api/auth", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
@@ -448,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("title", document.getElementById("newTitle").value.trim());
         formData.append("short_description", document.getElementById("newTagline").value.trim());
         formData.append("category", document.getElementById("newCategory").value);
-        formData.append("badge", document.getElementById("newBadge").value.trim() || "New Tool ⚡");
+        formData.append("badge", document.getElementById("newBadge").value.trim() || "New Tool âš¡");
         formData.append("thumbnail", document.getElementById("newImage").value.trim() || "assets/images/default.jpg");
         formData.append("price", document.getElementById("newSingleInr").value);
         
@@ -456,7 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("product_file", fileInput.files[0]);
 
         try {
-          const res = await fetch("/api/products", {
+          const res = await fetch("https://digital-selling-7w8x.onrender.com/api/products", {
             method: "POST",
             body: formData
           });
@@ -517,3 +517,4 @@ document.addEventListener("DOMContentLoaded", () => {
   // Start App
   initApp();
 });
+
