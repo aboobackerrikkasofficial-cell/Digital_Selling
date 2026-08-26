@@ -324,20 +324,20 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; align-items: end;" class="responsive-grid">
-            <div class="form-group">
-              <label class="form-label">Price (INR ₹)</label>
-              <input type="number" id="newSingleInr" class="form-control" placeholder="1499" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Thumbnail Image (URL or path)</label>
-              <input type="text" id="newImage" class="form-control" placeholder="assets/images/...">
-            </div>
+          <div class="form-group">
+            <label class="form-label">Price (INR ₹)</label>
+            <input type="number" id="newSingleInr" class="form-control" placeholder="1499" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Thumbnail Image (Cover / Preview)</label>
+            <input type="file" id="thumbnailFile" accept="image/*" class="form-control" style="padding: 0.5rem; background: var(--bg-coffee-darker); color: var(--text-coffee-muted);">
+            <div style="font-size: 0.75rem; color: var(--text-coffee-muted); margin-top: 0.4rem;">Choose a PNG, JPG, or WEBP cover image for the product card.</div>
           </div>
 
           <div class="form-group">
             <label class="form-label" style="color: var(--accent-orange);">Digital Product File (PDF, Video, ZIP, Image)</label>
-            <input type="file" id="productFile" class="form-control" style="padding: 0.5rem; background: var(--bg-coffee-darker); color: var(--text-coffee-muted);">
+            <input type="file" id="productFile" class="form-control" style="padding: 0.5rem; background: var(--bg-coffee-darker); color: var(--text-coffee-muted);" required>
             <div style="font-size: 0.75rem; color: var(--text-coffee-muted); margin-top: 0.4rem;">This file will be securely delivered to buyers after purchase.</div>
           </div>
 

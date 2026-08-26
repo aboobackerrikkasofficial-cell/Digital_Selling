@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Aboobacker Rikkas - Digital Products Storefront Engine
  * Clean Architecture, State Management, Product Details Modal & Direct UPI Payment Engine
  */
@@ -35,22 +35,36 @@ document.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for Render wake-up
       
       const res = await fetch('https://digital-selling-7w8x.onrender.com/api/products', { signal: controller.signal });
       clearTimeout(timeoutId);
       
-      if (!res.ok) throw new Error("API Error");
+      if (!res.ok) throw new Error("API Error: " + res.status);
       
       const data = await res.json();
-      if (data.success) {
-        state.products = data.products;
+      if (data.success && Array.isArray(data.products)) {
+        state.products = data.products.map(p => ({
+          ...p,
+          id: p.id,
+          title: p.title,
+          tagline: p.tagline || p.short_description || "",
+          description: p.description || p.short_description || "",
+          category: p.category || "general",
+          badge: p.badge || (p.bestseller ? "Bestseller 🔥" : (p.featured ? "Featured ⭐" : "Instant Access ⚡")),
+          rating: p.rating || "4.9",
+          image: p.thumbnail || p.image || "assets/images/default.jpg",
+          thumbnail: p.thumbnail || p.image || "assets/images/default.jpg",
+          singlePrice: p.singlePrice || (typeof p.price === "number" ? { inr: p.price, usd: Math.max(1, Math.round(p.price / 85)) } : { inr: 999, usd: 12 }),
+          subscriptionPrice: p.subscriptionPrice || null,
+          techStack: Array.isArray(p.techStack) ? p.techStack : ["Instant Download", "Lifetime Access"],
+          features: Array.isArray(p.features) ? p.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"]
+        }));
       } else {
         state.products = [];
       }
     } catch (err) {
       console.error("Failed to load products:", err);
-      // Removed dummy products as per user request so they can add original products
       state.products = [];
     }
     renderProducts();
@@ -444,31 +458,55 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        const thumbInput = document.getElementById("thumbnailFile");
+
         const formData = new FormData();
         formData.append("title", document.getElementById("newTitle").value.trim());
         formData.append("short_description", document.getElementById("newTagline").value.trim());
-        formData.append("category", document.getElementById("newCategory").value);
-        formData.append("badge", document.getElementById("newBadge").value.trim() || "New Tool âš¡");
-        formData.append("thumbnail", document.getElementById("newImage").value.trim() || "assets/images/default.jpg");
+        formData.append("category", document.getElementById("newCategory").value.trim());
+        formData.append("badge", document.getElementById("newBadge").value.trim() || "New Tool ⚡");
         formData.append("price", document.getElementById("newSingleInr").value);
         
-        // Append the actual file
+        // Append thumbnail file if selected
+        if (thumbInput && thumbInput.files && thumbInput.files.length > 0) {
+          formData.append("thumbnail_file", thumbInput.files[0]);
+        }
+        
+        // Append the digital product file
         formData.append("product_file", fileInput.files[0]);
 
         try {
+          showToast("Uploading and publishing product...");
           const res = await fetch("https://digital-selling-7w8x.onrender.com/api/products", {
             method: "POST",
             body: formData
           });
           const data = await res.json();
-          if (data.success) {
-            state.products.push(data.product);
+          if (data.success && data.product) {
+            const p = data.product;
+            const formatted = {
+              ...p,
+              id: p.id,
+              title: p.title,
+              tagline: p.tagline || p.short_description || "",
+              description: p.description || p.short_description || "",
+              category: p.category || "general",
+              badge: p.badge || "New Tool ⚡",
+              rating: p.rating || "4.9",
+              image: p.thumbnail || "assets/images/default.jpg",
+              thumbnail: p.thumbnail || "assets/images/default.jpg",
+              singlePrice: p.singlePrice || (typeof p.price === "number" ? { inr: p.price, usd: Math.max(1, Math.round(p.price / 85)) } : { inr: 999, usd: 12 }),
+              subscriptionPrice: p.subscriptionPrice || null,
+              techStack: Array.isArray(p.techStack) ? p.techStack : ["Instant Download", "Lifetime Access"],
+              features: Array.isArray(p.features) ? p.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"]
+            };
+            state.products.unshift(formatted);
             renderProducts();
             closeModal(adminModal);
             addProductForm.reset();
             showToast("New product published successfully!");
           } else {
-            showToast("Failed to publish product.");
+            showToast(data.message || "Failed to publish product.");
           }
         } catch (err) {
           console.error(err);

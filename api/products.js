@@ -50,11 +50,50 @@ export default async function handler(req, res) {
         const short_description = fields.short_description?.[0] || '';
         const category = fields.category?.[0] || 'general';
         const badge = fields.badge?.[0] || '';
-        const thumbnail = fields.thumbnail?.[0] || '';
+        let thumbnail = fields.thumbnail?.[0] || '';
         const price = parseFloat(fields.price?.[0]) || 0;
         
         // Use title as slug (simplified)
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+
+        // 0. Handle Thumbnail File Upload if provided
+        const thumbnailFile = files.thumbnail_file?.[0] || files.thumbnail?.[0];
+        if (thumbnailFile && thumbnailFile.filepath) {
+          const thumbFilename = thumbnailFile.originalFilename || `thumb-${Date.now()}.png`;
+          const thumbMime = thumbnailFile.mimetype || 'image/png';
+
+          if (supabase) {
+            try {
+              const thumbData = fs.readFileSync(thumbnailFile.filepath);
+              const thumbPath = `thumbnails/${slug}/${thumbFilename}`;
+              const { error: thumbErr } = await supabase.storage
+                .from('products')
+                .upload(thumbPath, thumbData, {
+                  contentType: thumbMime,
+                  upsert: true
+                });
+              if (!thumbErr) {
+                const { data: publicUrlData } = supabase.storage
+                  .from('products')
+                  .getPublicUrl(thumbPath);
+                thumbnail = publicUrlData?.publicUrl || '';
+              }
+            } catch (e) {
+              console.error('Thumbnail upload to Supabase error:', e);
+            }
+          }
+
+          if (!thumbnail) {
+            try {
+              const fileBuf = fs.readFileSync(thumbnailFile.filepath);
+              if (fileBuf.length < 2 * 1024 * 1024) {
+                thumbnail = `data:${thumbMime};base64,${fileBuf.toString('base64')}`;
+              }
+            } catch (e) {
+              console.error('Thumbnail base64 error:', e);
+            }
+          }
+        }
 
         let storage_key = 'local/mock/' + Date.now();
         let filename = 'mock_file.pdf';
@@ -100,7 +139,7 @@ export default async function handler(req, res) {
             category,
             product_type: 'digital',
             price,
-            thumbnail,
+            thumbnail: thumbnail || null,
             active: true,
             files: {
               create: {
