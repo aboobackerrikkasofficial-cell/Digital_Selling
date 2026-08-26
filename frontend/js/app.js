@@ -67,7 +67,15 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Failed to load products:", err);
       state.products = [];
     }
-    renderProducts();
+    
+    if (window.location.pathname.includes('product.html')) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const productIdStr = urlParams.get('id');
+      const productId = productIdStr ? parseInt(productIdStr) : null;
+      renderProductPage(productId);
+    } else {
+      renderProducts();
+    }
   }
 
   // Format Currency
@@ -120,6 +128,114 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Render Single Product Page
+  function renderProductPage(productId) {
+    const container = document.getElementById('productDetailContainer');
+    if (!container) return;
+    
+    const product = state.products.find(p => p.id === productId);
+    
+    if (!product) {
+      container.innerHTML = `<div style="padding: 3rem; text-align: center; color: var(--text-coffee-muted);">Product not found. <a href="index.html" style="color: var(--accent-orange);">Go back</a></div>`;
+      return;
+    }
+    
+    state.selectedProduct = product;
+    const singlePriceObj = product.singlePrice || (typeof product.price === 'number' ? { inr: product.price, usd: Math.max(1, Math.round(product.price / 85)) } : { inr: 999, usd: 12 });
+    const priceDisplay = formatPrice(singlePriceObj, product.subscriptionPrice);
+    const catDisplay = (product.category || "Digital Product").replace(/_/g, ' ');
+    const imgSrc = product.thumbnail || product.image || 'assets/images/default.jpg';
+    const features = Array.isArray(product.features) ? product.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"];
+    const techStack = Array.isArray(product.techStack) ? product.techStack : ["Instant Access", "Lifetime Download"];
+
+    container.innerHTML = `
+      <div style="padding: 2.5rem;">
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 2rem;">
+          <img src="${imgSrc}" style="width: 160px; height: 160px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-cream);" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
+          <div style="flex: 1; min-width: 250px;">
+            <span class="product-category-tag" style="margin-bottom: 0.5rem; display: inline-block;">${catDisplay}</span>
+            <h1 style="font-size: 2rem; margin-bottom: 0.6rem; color: var(--text-coffee-dark); font-weight: 800; line-height: 1.2;">${product.title || 'Untitled'}</h1>
+            <p style="color: var(--text-coffee-muted); font-size: 1.05rem; margin-bottom: 1rem; line-height: 1.6;">${product.tagline || product.short_description || ''}</p>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.9rem; padding: 0.4rem 0.8rem;">★ ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; margin-bottom: 0.8rem; color: var(--text-coffee-dark); font-weight: 700;">Product Overview</h3>
+          <p style="color: var(--text-coffee-muted); font-size: 1rem; line-height: 1.7;">${product.description || product.short_description || 'Detailed guide and source files.'}</p>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.25rem; margin-bottom: 0.8rem; color: var(--text-coffee-dark); font-weight: 700;">Key Capabilities & Features</h3>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.8rem; padding: 0;">
+            ${features.map(f => `
+              <li style="display: flex; align-items: flex-start; gap: 0.8rem; color: var(--text-coffee-dark); font-size: 1rem;">
+                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0; font-size: 1.1rem;">✓</span>
+                <span>${f}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h3 style="font-size: 1.25rem; color: var(--text-coffee-dark); font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+              <span>💬 Verified Customer Reviews</span>
+            </h3>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            ${getProductReviews(product).map(r => `
+              <div style="background: var(--bg-coffee-darker); border: 1px solid var(--border-cream); border-radius: var(--radius-md); padding: 1rem 1.2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-orange); color: #fff; font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      ${r.name.charAt(0)}
+                    </div>
+                    <div>
+                      <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-coffee-dark);">${r.name}</span>
+                      <span style="font-size: 0.8rem; color: var(--text-coffee-muted); margin-left: 0.4rem;">• ${r.location}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.75rem; background: rgba(194, 166, 136, 0.18); color: var(--accent-orange); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">${r.langBadge}</span>
+                    <span style="color: #f59e0b; font-size: 0.9rem; letter-spacing: 1px;">★★★★★</span>
+                  </div>
+                </div>
+                <p style="font-size: 0.95rem; color: var(--text-coffee-dark); line-height: 1.6; margin: 0.5rem 0; font-style: italic;">
+                  "${r.text}"
+                </p>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-coffee-muted);">
+                  <span style="color: var(--accent-green); font-weight: 600;">${r.tag}</span>
+                  <span>${r.date}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Buy Now Section (Bottom) -->
+        <div style="border-top: 1px solid var(--border-cream); padding-top: 2rem; margin-top: 1rem; text-align: center; background: var(--bg-coffee-darker); border-radius: var(--radius-md); padding-bottom: 2rem;">
+          <h3 style="font-size: 1.4rem; color: var(--text-coffee-dark); margin-bottom: 0.5rem;">Get Instant Access Now</h3>
+          <p style="color: var(--text-coffee-muted); margin-bottom: 1.5rem;">Join ${product.salesCount || 100}+ others who have already downloaded.</p>
+          <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+             <span style="font-size: 2rem; font-weight: 800; color: var(--text-coffee-dark);">${priceDisplay}</span>
+          </div>
+          <button class="btn-primary" id="btnPageBuy" style="font-size: 1.1rem; padding: 1rem 2.5rem; min-width: 250px;">
+            Buy Now - Instant Download
+          </button>
+          <p style="font-size: 0.8rem; color: var(--text-coffee-muted); margin-top: 1rem;">Secure Payment via UPI/Card. 100% Instant Delivery.</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btnPageBuy").addEventListener("click", () => {
+      openPaymentModal(productId);
+    });
+  }
+
   // Render Product Grid
   function renderProducts() {
     try {
@@ -145,12 +261,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const catDisplay = (product.category || "Digital Product").replace(/_/g, ' ');
         const imgSrc = product.thumbnail || product.image || 'assets/images/default.jpg';
         const techStack = Array.isArray(product.techStack) ? product.techStack : ["Instant Access", "Lifetime Download"];
+        const features = Array.isArray(product.features) ? product.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"];
         
         return `
-          <article class="product-card" data-id="${product.id}">
+          <article class="product-card" data-id="${product.id}" style="cursor: pointer;" onclick="window.location.href='product.html?id=${product.id}'">
             <div class="product-thumb-wrap">
               <span class="product-badge-overlay">${product.badge || "Featured"}</span>
-              <span class="product-rating-overlay">★ ${product.rating || "4.9"}</span>
               <img src="${imgSrc}" alt="${product.title || 'Product'}" class="product-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
             </div>
             <div class="product-body">
@@ -158,20 +274,20 @@ document.addEventListener("DOMContentLoaded", () => {
               <h3 class="product-title">${product.title || 'Untitled'}</h3>
               <p class="product-tagline">${product.tagline || product.short_description || ''}</p>
               
-              <div class="product-tech-stack">
-                ${techStack.map(tech => `<span class="tech-chip">${tech}</span>`).join('')}
+              <div style="margin: 0.8rem 0;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-coffee-dark); margin-bottom: 0.4rem;">Top Features:</div>
+                <ul style="list-style: none; padding: 0; font-size: 0.8rem; color: var(--text-coffee-muted); display: flex; flex-direction: column; gap: 0.3rem;">
+                  ${features.slice(0, 3).map(f => `<li><span style="color: var(--accent-green);">✓</span> ${f}</li>`).join('')}
+                </ul>
               </div>
 
-              <div class="product-footer">
-                <div class="price-box">
-                  <span class="price-amount">${priceDisplay}</span>
-                  <span class="price-period">${isSub ? "billed monthly" : "one-time lifetime"}</span>
+              <div class="product-footer" style="border-top: 1px solid var(--border-cream); padding-top: 0.8rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-coffee-dark);">
+                  <span style="color: #f59e0b;">★ ${product.rating || "4.9"}</span>
+                  <span style="color: var(--text-coffee-muted);">(${product.salesCount || 100}+ Downloads)</span>
                 </div>
-                <div class="card-actions">
-                  <button class="btn-outline btn-detail" data-id="${product.id}" aria-label="View Details for ${product.title || 'Product'}">Details</button>
-                  <button class="btn-primary btn-buy" data-id="${product.id}" aria-label="Buy ${product.title || 'Product'}">
-                    Buy Now
-                  </button>
+                <div class="price-box" style="margin: 0;">
+                  <span class="price-amount" style="font-size: 1.1rem;">${priceDisplay}</span>
                 </div>
               </div>
             </div>
