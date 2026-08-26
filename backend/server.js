@@ -181,13 +181,24 @@ app.post('/api/payments/create', async (req, res) => {
       currency: order.currency,
     });
   } catch (error) {
-    console.error('Payment order creation error:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Failed to create payment order' });
+    return res.status(500).json({ success: false, message: 'Payment error' });
+  }
+});
+
+// DELETE PRODUCT
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.productFile.deleteMany({ where: { product_id: id } });
+    await prisma.order.deleteMany({ where: { product_id: id } });
+    await prisma.product.delete({ where: { id } });
+    return res.status(200).json({ success: true, message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to delete product' });
   }
 });
 
 // START
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('Backend running on port ' + PORT);
-});
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
