@@ -147,6 +147,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.8rem;
+  min-width: 0;
 }
 
 .logo-avatar {
@@ -167,6 +168,8 @@ textarea {
 .brand-text {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brand-name {
@@ -175,6 +178,8 @@ textarea {
   color: var(--text-coffee-dark);
   letter-spacing: -0.02em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-subtitle {
@@ -185,6 +190,8 @@ textarea {
   gap: 0.35rem;
   font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .floating-support {
@@ -229,6 +236,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 /* Control Buttons */
@@ -247,6 +255,7 @@ textarea {
   transition: var(--transition-smooth);
   box-shadow: 0 2px 8px rgba(56, 35, 20, 0.03);
   min-height: 42px;
+  flex-shrink: 0;
 }
 
 .btn-control:hover {
@@ -1323,6 +1332,31 @@ textarea {
   .navbar {
     padding: 0.75rem 0;
   }
+  .nav-content {
+    gap: 0.75rem;
+  }
+  .brand-logo {
+    gap: 0.65rem;
+  }
+  .logo-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+  .brand-name {
+    font-size: 1rem;
+  }
+  .brand-subtitle {
+    font-size: 0.72rem;
+  }
+  .nav-actions {
+    gap: 0.5rem;
+  }
+  .btn-control {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
+    min-height: 38px;
+  }
   .bento-hero-main {
     padding: 2rem 1.5rem;
   }
@@ -1330,7 +1364,7 @@ textarea {
     font-size: 2.1rem;
   }
   .controls-section {
-    top: 59px;
+    top: 57px;
   }
   .controls-row-top {
     flex-direction: column;
@@ -1347,6 +1381,50 @@ textarea {
 @media (max-width: 640px) {
   .container {
     padding: 0 1rem;
+  }
+  .navbar {
+    padding: 0.6rem 0;
+  }
+  .nav-content {
+    gap: 0.5rem;
+  }
+  .brand-logo {
+    gap: 0.5rem;
+  }
+  .logo-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 0.88rem;
+    border-radius: var(--radius-sm);
+  }
+  .brand-name {
+    font-size: 0.88rem;
+    letter-spacing: -0.01em;
+  }
+  .brand-subtitle {
+    font-size: 0.65rem;
+    gap: 0.25rem;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+  }
+  .nav-actions {
+    gap: 0.4rem;
+  }
+  .btn-control {
+    padding: 0.38rem 0.65rem;
+    font-size: 0.78rem;
+    min-height: 34px;
+    gap: 0.35rem;
+    border-radius: var(--radius-sm);
+  }
+  .btn-control svg {
+    width: 14px;
+    height: 14px;
+  }
+  .controls-section {
+    top: 50px;
   }
   .products-grid {
     grid-template-columns: 1fr;
@@ -1365,5 +1443,43 @@ textarea {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     max-height: 88vh;
+  }
+}
+
+@media (max-width: 400px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+  .brand-logo {
+    gap: 0.4rem;
+  }
+  .logo-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+  .brand-name {
+    font-size: 0.8rem;
+  }
+  .brand-subtitle {
+    font-size: 0.58rem;
+  }
+  .nav-actions {
+    gap: 0.3rem;
+  }
+  .btn-control {
+    padding: 0.32rem 0.5rem;
+    font-size: 0.72rem;
+    min-height: 32px;
+    gap: 0.25rem;
+    border-radius: 8px;
+  }
+  .btn-control svg {
+    width: 13px;
+    height: 13px;
+  }
+  .manage-text {
+    display: none;
   }
 }

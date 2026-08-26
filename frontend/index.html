@@ -47,7 +47,7 @@
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
-          <span>Manage</span>
+          <span class="manage-text">Manage</span>
         </button>
       </div>
     </div>
@@ -351,6 +351,16 @@
             Publish Product Live to Store
           </button>
         </form>
+
+        <div style="border-top: 1px solid var(--border-cream); margin-top: 1.5rem; padding-top: 1.2rem;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.8rem; color: var(--text-coffee-dark); display: flex; justify-content: space-between; align-items: center;">
+            <span>📦 Manage Live Products</span>
+            <span id="adminProductCount" style="font-size: 0.75rem; color: var(--text-coffee-muted);"></span>
+          </h4>
+          <div id="adminProductsList" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 200px; overflow-y: auto; padding-right: 0.2rem;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
