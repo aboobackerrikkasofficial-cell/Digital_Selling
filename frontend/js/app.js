@@ -70,8 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (window.location.pathname.includes('product.html')) {
       const urlParams = new URLSearchParams(window.location.search);
-      const productIdStr = urlParams.get('id');
-      const productId = productIdStr ? parseInt(productIdStr) : null;
+      const productId = urlParams.get('id');
       renderProductPage(productId);
     } else {
       renderProducts();
