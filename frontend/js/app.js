@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatPriceVal(priceObj) {
     if (state.currency === "INR") {
-      return `â‚¹${priceObj.inr.toLocaleString("en-IN")}`;
+      return `₹${priceObj.inr.toLocaleString("en-IN")}`;
     } else {
       return `$${priceObj.usd.toLocaleString("en-US")}`;
     }
@@ -94,17 +94,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Filter Products
   function getFilteredProducts() {
-    return state.products.filter(product => {
+    return (state.products || []).filter(product => {
+      if (!product) return false;
+      
       // Category Match
-      const matchesCategory = state.activeCategory === "all" || product.category === state.activeCategory;
+      const prodCat = (product.category || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+      const activeCat = (state.activeCategory || "all").toLowerCase().replace(/[^a-z0-9]/g, '');
+      const matchesCategory = activeCat === "all" || prodCat === activeCat || prodCat.includes(activeCat) || activeCat.includes(prodCat);
       
       // Search Match
-      const query = state.searchQuery.toLowerCase().trim();
+      const query = (state.searchQuery || "").toLowerCase().trim();
+      const title = (product.title || "").toLowerCase();
+      const tagline = (product.tagline || product.short_description || "").toLowerCase();
+      const description = (product.description || "").toLowerCase();
+      const techStack = Array.isArray(product.techStack) ? product.techStack : [];
+      const matchesTech = techStack.some(t => typeof t === 'string' && t.toLowerCase().includes(query));
+
       const matchesSearch = !query || 
-        product.title.toLowerCase().includes(query) ||
-        product.tagline.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
-        product.techStack.some(t => t.toLowerCase().includes(query));
+        title.includes(query) ||
+        tagline.includes(query) ||
+        description.includes(query) ||
+        matchesTech;
 
       return matchesCategory && matchesSearch;
     });
@@ -112,59 +122,67 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Render Product Grid
   function renderProducts() {
-    const filtered = getFilteredProducts();
+    try {
+      const filtered = getFilteredProducts();
 
-    if (filtered.length === 0) {
-      productsGrid.innerHTML = `
-        <div class="no-results">
-          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <h3>No digital products found</h3>
-          <p style="color: var(--text-coffee-muted);">Try adjusting your search terms or filter category.</p>
-        </div>
-      `;
-      return;
+      if (!filtered || filtered.length === 0) {
+        productsGrid.innerHTML = `
+          <div class="no-results">
+            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <h3>No digital products found</h3>
+            <p style="color: var(--text-coffee-muted);">Try adjusting your search terms or filter category.</p>
+          </div>
+        `;
+        return;
+      }
+
+      productsGrid.innerHTML = filtered.map(product => {
+        const singlePriceObj = product.singlePrice || (typeof product.price === 'number' ? { inr: product.price, usd: Math.max(1, Math.round(product.price / 85)) } : { inr: 999, usd: 12 });
+        const priceDisplay = formatPrice(singlePriceObj, product.subscriptionPrice);
+        const isSub = state.pricingMode === "subscription";
+        const catDisplay = (product.category || "Digital Product").replace(/_/g, ' ');
+        const imgSrc = product.thumbnail || product.image || 'assets/images/default.jpg';
+        const techStack = Array.isArray(product.techStack) ? product.techStack : ["Instant Access", "Lifetime Download"];
+        
+        return `
+          <article class="product-card" data-id="${product.id}">
+            <div class="product-thumb-wrap">
+              <span class="product-badge-overlay">${product.badge || "Featured"}</span>
+              <span class="product-rating-overlay">★ ${product.rating || "4.9"}</span>
+              <img src="${imgSrc}" alt="${product.title || 'Product'}" class="product-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
+            </div>
+            <div class="product-body">
+              <div class="product-category-tag">${catDisplay}</div>
+              <h3 class="product-title">${product.title || 'Untitled'}</h3>
+              <p class="product-tagline">${product.tagline || product.short_description || ''}</p>
+              
+              <div class="product-tech-stack">
+                ${techStack.map(tech => `<span class="tech-chip">${tech}</span>`).join('')}
+              </div>
+
+              <div class="product-footer">
+                <div class="price-box">
+                  <span class="price-amount">${priceDisplay}</span>
+                  <span class="price-period">${isSub ? "billed monthly" : "one-time lifetime"}</span>
+                </div>
+                <div class="card-actions">
+                  <button class="btn-outline btn-detail" data-id="${product.id}" aria-label="View Details for ${product.title || 'Product'}">Details</button>
+                  <button class="btn-primary btn-buy" data-id="${product.id}" aria-label="Buy ${product.title || 'Product'}">
+                    Buy Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      attachCardListeners();
+    } catch (e) {
+      console.error("Error in renderProducts:", e);
     }
-
-    productsGrid.innerHTML = filtered.map(product => {
-      const priceDisplay = formatPrice(product.singlePrice, product.subscriptionPrice);
-      const isSub = state.pricingMode === "subscription";
-      
-      return `
-        <article class="product-card" data-id="${product.id}">
-          <div class="product-thumb-wrap">
-            <span class="product-badge-overlay">${product.badge || "Featured"}</span>
-            <span class="product-rating-overlay">â˜… ${product.rating || "4.9"}</span>
-            <img src="${product.image}" alt="${product.title}" class="product-thumb" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
-          </div>
-          <div class="product-body">
-            <div class="product-category-tag">${product.category.replace('_', ' ')}</div>
-            <h3 class="product-title">${product.title}</h3>
-            <p class="product-tagline">${product.tagline}</p>
-            
-            <div class="product-tech-stack">
-              ${(product.techStack || []).map(tech => `<span class="tech-chip">${tech}</span>`).join('')}
-            </div>
-
-            <div class="product-footer">
-              <div class="price-box">
-                <span class="price-amount">${priceDisplay}</span>
-                <span class="price-period">${isSub ? "billed monthly" : "one-time lifetime"}</span>
-              </div>
-              <div class="card-actions">
-                <button class="btn-outline btn-detail" data-id="${product.id}" aria-label="View Details for ${product.title}">Details</button>
-                <button class="btn-primary btn-buy" data-id="${product.id}" aria-label="Buy ${product.title}">
-                  Buy Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </article>
-      `;
-    }).join("");
-
-    attachCardListeners();
   }
 
   // Attach Listeners to Rendered Cards
@@ -191,35 +209,39 @@ document.addEventListener("DOMContentLoaded", () => {
     state.selectedProduct = product;
 
     const modalBody = document.getElementById("detailModalContent");
-    const priceDisplay = formatPrice(product.singlePrice, product.subscriptionPrice);
-    const isSub = state.pricingMode === "subscription";
+    const singlePriceObj = product.singlePrice || (typeof product.price === 'number' ? { inr: product.price, usd: Math.max(1, Math.round(product.price / 85)) } : { inr: 999, usd: 12 });
+    const priceDisplay = formatPrice(singlePriceObj, product.subscriptionPrice);
+    const catDisplay = (product.category || "Digital Product").replace(/_/g, ' ');
+    const imgSrc = product.thumbnail || product.image || 'assets/images/default.jpg';
+    const features = Array.isArray(product.features) ? product.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"];
+    const techStack = Array.isArray(product.techStack) ? product.techStack : ["Instant Access", "Lifetime Download"];
 
     modalBody.innerHTML = `
       <div style="padding: 1.8rem;">
         <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-start; margin-bottom: 1.4rem;">
-          <img src="${product.image}" style="width: 120px; height: 120px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-cream);" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
+          <img src="${imgSrc}" style="width: 120px; height: 120px; border-radius: var(--radius-md); object-fit: cover; border: 1px solid var(--border-cream);" onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'">
           <div style="flex: 1; min-width: 220px;">
-            <span class="product-category-tag">${product.category.replace('_', ' ')}</span>
-            <h2 style="font-size: 1.5rem; margin-bottom: 0.4rem; color: var(--text-coffee-dark); font-weight: 800;">${product.title}</h2>
-            <p style="color: var(--text-coffee-muted); font-size: 0.92rem; margin-bottom: 0.8rem; line-height: 1.5;">${product.tagline}</p>
+            <span class="product-category-tag">${catDisplay}</span>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.4rem; color: var(--text-coffee-dark); font-weight: 800;">${product.title || 'Untitled'}</h2>
+            <p style="color: var(--text-coffee-muted); font-size: 0.92rem; margin-bottom: 0.8rem; line-height: 1.5;">${product.tagline || product.short_description || ''}</p>
             <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
               <span class="price-amount" style="font-size: 1.45rem;">${priceDisplay}</span>
-              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.78rem;">â˜… ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
+              <span class="discount-tag" style="background: var(--bg-green-soft); color: var(--accent-green); font-size: 0.78rem;">★ ${product.rating || '4.9'} (${product.salesCount || 100}+ Downloads)</span>
             </div>
           </div>
         </div>
 
         <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; margin-bottom: 1.2rem;">
           <h4 style="font-size: 1.05rem; margin-bottom: 0.6rem; color: var(--text-coffee-dark); font-weight: 700;">Product Overview</h4>
-          <p style="color: var(--text-coffee-muted); font-size: 0.92rem; line-height: 1.6;">${product.description}</p>
+          <p style="color: var(--text-coffee-muted); font-size: 0.92rem; line-height: 1.6;">${product.description || product.short_description || 'Detailed guide and source files.'}</p>
         </div>
 
         <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; margin-bottom: 1.2rem;">
           <h4 style="font-size: 1.05rem; margin-bottom: 0.6rem; color: var(--text-coffee-dark); font-weight: 700;">Key Capabilities & Features Included</h4>
           <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.6rem;">
-            ${(product.features || []).map(f => `
+            ${features.map(f => `
               <li style="display: flex; align-items: flex-start; gap: 0.6rem; color: var(--text-coffee-dark); font-size: 0.9rem;">
-                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0;">âœ“</span>
+                <span style="color: var(--accent-green); font-weight: 800; flex-shrink: 0;">✓</span>
                 <span>${f}</span>
               </li>
             `).join('')}
@@ -228,7 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <div style="border-top: 1px solid var(--border-cream); padding-top: 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-            ${(product.techStack || []).map(t => `<span class="tech-chip">${t}</span>`).join('')}
+            ${techStack.map(t => `<span class="tech-chip">${t}</span>`).join('')}
           </div>
           <button class="btn-primary" id="btnDetailModalBuy">
             Proceed to Checkout (${priceDisplay})
@@ -459,6 +481,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const thumbInput = document.getElementById("thumbnailFile");
+        const submitBtn = addProductForm.querySelector('button[type="submit"]');
+        const origBtnText = submitBtn ? submitBtn.innerHTML : "Publish Product Live to Store";
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = "Publishing Product...";
+        }
 
         const formData = new FormData();
         formData.append("title", document.getElementById("newTitle").value.trim());
@@ -501,6 +529,8 @@ document.addEventListener("DOMContentLoaded", () => {
               features: Array.isArray(p.features) ? p.features : ["Complete digital package", "Instant file delivery after payment", "Full documentation included"]
             };
             state.products.unshift(formatted);
+            state.activeCategory = "all";
+            document.querySelectorAll(".cat-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-cat") === "all"));
             renderProducts();
             closeModal(adminModal);
             addProductForm.reset();
@@ -509,8 +539,13 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast(data.message || "Failed to publish product.");
           }
         } catch (err) {
-          console.error(err);
+          console.error("Publish error:", err);
           showToast("Server error while publishing.");
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnText;
+          }
         }
       });
     }
